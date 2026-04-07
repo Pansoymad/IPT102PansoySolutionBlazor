@@ -1,0 +1,215 @@
+@page "/movies"
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+@using Domain.Models
+@using Domain.Commands
+@using Domain.Queries
+@inject ICreateCommand CreateCommand
+@inject IUpdateCommand UpdateCommand
+@inject IDeleteCommand DeleteCommand
+@inject IGetAllMovie GetAllMovie
+
+<PageTitle>Movies</PageTitle>
+
+<h1>Movies</h1>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <input class="form-control" placeholder="Search by title or year..."
+               @bind="searchText" @bind:event="oninput" />
+    </div>
+    <div class="col-md-8 text-end">
+        <button class="btn btn-primary" @onclick="ShowAddForm">+ Add Movie</button>
+    </div>
+</div>
+
+@if (showForm)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">@(isEditMode ? "Edit Movie" : "Add Movie")</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Title</label>
+                    <input class="form-control" @bind="formTitle" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Release Year</label>
+                    <input class="form-control" type="number" @bind="formReleaseYear" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Runtime (min)</label>
+                    <input class="form-control" type="number" @bind="formRuntimeMinutes" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Rating</label>
+                    <input class="form-control" type="number" step="0.1" min="0" max="10" @bind="formRating" />
+                </div>
+            </div>
+            <div class="mt-3">
+                <button class="btn btn-success me-2" @onclick="SaveMovie">@(isEditMode ? "Update" : "Save")</button>
+                <button class="btn btn-secondary" @onclick="CancelForm">Cancel</button>
+            </div>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger mt-2">@errorMessage</div>
+            }
+        </div>
+    </div>
+}
+
+@if (movies == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Year</th>
+                <th>Runtime</th>
+                <th>Rating</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var movie in FilteredMovies)
+            {
+                <tr>
+                    <td>@movie.MovieId</td>
+                    <td>@movie.Title</td>
+                    <td>@movie.ReleaseYear</td>
+                    <td>@(movie.RuntimeMinutes.HasValue ? $"{movie.RuntimeMinutes} min" : "-")</td>
+                    <td>@(movie.Rating.HasValue ? movie.Rating.Value.ToString("0.0") : "-")</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning me-1" @onclick="() => EditMovie(movie)">Edit</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteMovieAsync(movie)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Movie>? movies = [];
+    private string searchText = string.Empty;
+    private bool showForm = false;
+    private bool isEditMode = false;
+    private string errorMessage = string.Empty;
+
+    private string formTitle = string.Empty;
+    private int? formReleaseYear;
+    private int? formRuntimeMinutes;
+    private decimal? formRating;
+    private int currentMovieId;
+
+    private IEnumerable<Movie> FilteredMovies => movies == null ? [] :
+        string.IsNullOrWhiteSpace(searchText) ? movies :
+        movies.Where(m =>
+            m.Title.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+            (m.ReleaseYear?.ToString().Contains(searchText) ?? false));
+
+    protected override async Task OnInitializedAsync() => await LoadMovies();
+
+    private async Task LoadMovies()
+    {
+        try
+        {
+            var result = await GetAllMovie.ExecuteAsync();
+            movies = result?.ToList() ?? [];
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load movies: {ex.Message}";
+            movies = [];
+        }
+    }
+    private void ShowAddForm()
+    {
+        ClearForm();
+        showForm = true;
+        isEditMode = false;
+    }
+
+    private void EditMovie(Movie movie)
+    {
+        currentMovieId = movie.MovieId;
+        formTitle = movie.Title;
+        formReleaseYear = movie.ReleaseYear;
+        formRuntimeMinutes = movie.RuntimeMinutes;
+        formRating = movie.Rating;
+        isEditMode = true;
+        showForm = true;
+        errorMessage = string.Empty;
+    }
+
+    private async Task SaveMovie()
+    {
+        if (string.IsNullOrWhiteSpace(formTitle))
+        {
+            errorMessage = "Title is required.";
+            return;
+        }
+
+        try
+        {
+            var movie = new Movie
+            {
+                MovieId = currentMovieId,
+                Title = formTitle,
+                ReleaseYear = formReleaseYear,
+                RuntimeMinutes = formRuntimeMinutes,
+                Rating = formRating
+            };
+
+            if (isEditMode)
+                await UpdateCommand.ExecuteAsync(movie);
+            else
+                await CreateCommand.ExecuteAsync(movie);
+
+            CancelForm();
+            await LoadMovies();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task DeleteMovieAsync(Movie movie)
+    {
+        try
+        {
+            await DeleteCommand.ExecuteAsync(movie);
+            await LoadMovies();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        ClearForm();
+    }
+
+    private void ClearForm()
+    {
+        formTitle = string.Empty;
+        formReleaseYear = null;
+        formRuntimeMinutes = null;
+        formRating = null;
+        currentMovieId = 0;
+        errorMessage = string.Empty;
+    }
+}
