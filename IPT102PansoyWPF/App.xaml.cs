@@ -1,7 +1,6 @@
 ﻿using System.Windows;
 using Domain.Commands;
 using Domain.Queries;
-using Framework;
 using IPT102PansoyFramework.Commands;
 using IPT102PansoyFramework.Queries;
 using IPT102PansoyFramework;

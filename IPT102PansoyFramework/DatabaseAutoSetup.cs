@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
-namespace Framework
+namespace IPT102PansoyFramework
 {
     public class DatabaseAutoSetup
     {

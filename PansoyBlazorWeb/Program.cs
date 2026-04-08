@@ -34,7 +34,7 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
-        options.SignIn.RequireConfirmedAccount = true;
+        options.SignIn.RequireConfirmedAccount = false;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -50,7 +50,7 @@ builder.Services.AddScoped<IUpdateCommand, UpdateCommand>();
 builder.Services.AddScoped<IDeleteCommand, DeleteCommand>();
 builder.Services.AddScoped<IGetAllMovie, GetAllMovie>();
 builder.Services.AddScoped<IReadMovieById, ReadMovieById>();
-builder.Services.AddSingleton<Framework.DatabaseAutoSetup>();
+builder.Services.AddSingleton<IPT102PansoyFramework.DatabaseAutoSetup>();
 
 var app = builder.Build();
 
@@ -75,9 +75,17 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 // Add additional endpoints required by the Identity /Account Razor components.
+app.MapAdditionalIdentityEndpoints();
 
 // Auto-create MovieDatabase and stored procedures
-var dbSetup = app.Services.GetRequiredService<Framework.DatabaseAutoSetup>();
+var dbSetup = app.Services.GetRequiredService<IPT102PansoyFramework.DatabaseAutoSetup>();
 await dbSetup.EnsureDatabaseSetupAsync();
+
+// Apply Identity migrations automatically
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 app.Run();

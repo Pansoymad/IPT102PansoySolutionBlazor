@@ -2,10 +2,10 @@
     @Id INT = NULL
 AS
     SELECT
-        Id,
+        MovieId,
         Title,
         ReleaseYear,
         RuntimeMinutes,
         Rating
     FROM [dbo].[Movie]
-    WHERE Id = @Id;
+    WHERE MovieId = @Id;

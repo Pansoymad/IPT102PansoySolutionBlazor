@@ -5,5 +5,5 @@ BEGIN
     SET NOCOUNT ON;
 
     DELETE FROM [dbo].[Movie]
-    WHERE Id = @Id;
+    WHERE MovieId = @Id;
 END

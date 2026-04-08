@@ -11,4 +11,4 @@ AS
         ReleaseYear = @ReleaseYear,
         RuntimeMinutes = @RuntimeMinutes,
         Rating = @Rating
-    WHERE Id = @Id;
+    WHERE MovieId = @Id;

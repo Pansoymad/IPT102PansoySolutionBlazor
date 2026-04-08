@@ -107,6 +107,20 @@ namespace IPT102PansoyWPF.ViewModels
         {
             if (IsEditMode) { await UpdateMovie(); return; }
 
+            if (string.IsNullOrWhiteSpace(Title))
+            {
+                System.Windows.MessageBox.Show("Title is required.", "Validation",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+
+            if (decimal.TryParse(Rating, out var ratingVal) && (ratingVal < 0 || ratingVal > 10))
+            {
+                System.Windows.MessageBox.Show("Rating must be between 0.0 and 10.0.", "Validation",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+
             try
             {
                 var movie = new Movie
@@ -130,6 +144,20 @@ namespace IPT102PansoyWPF.ViewModels
 
         public async Task UpdateMovie()
         {
+            if (string.IsNullOrWhiteSpace(Title))
+            {
+                System.Windows.MessageBox.Show("Title is required.", "Validation",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+
+            if (decimal.TryParse(Rating, out var ratingVal) && (ratingVal < 0 || ratingVal > 10))
+            {
+                System.Windows.MessageBox.Show("Rating must be between 0.0 and 10.0.", "Validation",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+
             try
             {
                 var movie = new Movie
@@ -155,6 +183,14 @@ namespace IPT102PansoyWPF.ViewModels
 
         public async void DeleteMovie(Movie movie)
         {
+            var result = System.Windows.MessageBox.Show(
+                $"Are you sure you want to delete \"{movie.Title}\"?",
+                "Confirm Delete",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning);
+
+            if (result != System.Windows.MessageBoxResult.Yes) return;
+
             try
             {
                 await _deleteMovie.ExecuteAsync(movie);
